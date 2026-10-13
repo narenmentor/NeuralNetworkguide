@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>How a Simple Neural Network Works | Entri Coding Tamil</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--sky:#0ea5e9;--sky-d:#0369a1;--sky-l:#e0f2fe;--bg:#f5fbff;--card:#fff;--ink:#0c2a3d;--mute:#4b6b80;--line:#bae6fd;--code:#0c2a3d;--codeink:#e0f2fe;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--sky:#38bdf8;--sky-d:#7dd3fc;--sky-l:#0b3550;--bg:#071a28;--card:#0d2638;--ink:#e6f4fc;--mute:#9bbdd2;--line:#14506f;--code:#041420;--codeink:#e0f2fe}}
+:root[data-theme="dark"]{--sky:#38bdf8;--sky-d:#7dd3fc;--sky-l:#0b3550;--bg:#071a28;--card:#0d2638;--ink:#e6f4fc;--mute:#9bbdd2;--line:#14506f;--code:#041420;--codeink:#e0f2fe}
+html{scroll-padding-top:env(safe-area-inset-top,0px);scroll-behavior:smooth}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.65 'Nunito',system-ui,sans-serif}
+.wrap{max-width:860px;margin:0 auto;padding:0 20px}
+header{background:var(--sky);color:#fff;padding:56px 0 48px}
+header h1{font-size:clamp(2rem,6vw,3.2rem);line-height:1.1;margin:0 0 12px;font-weight:800}
+header p{margin:0;max-width:56ch;font-size:1.1rem;opacity:.95}
+nav{position:sticky;top:env(safe-area-inset-top,0px);background:var(--card);border-bottom:2px solid var(--line);z-index:5}
+nav .wrap{display:flex;gap:6px;overflow-x:auto;padding:8px 20px}
+nav a{white-space:nowrap;text-decoration:none;color:var(--sky-d);font-weight:600;font-size:.9rem;padding:6px 12px;border-radius:99px}
+nav a:hover,nav a:focus-visible{background:var(--sky-l);outline:2px solid var(--sky);outline-offset:1px}
+section{padding:36px 0 4px}
+h2{font-size:1.65rem;margin:0 0 14px;color:var(--sky-d);border-left:6px solid var(--sky);padding-left:12px;line-height:1.2}
+h3{font-size:1.15rem;margin:22px 0 6px}
+p{margin:0 0 12px;max-width:68ch}
+code{font-family:'JetBrains Mono',monospace,ui-monospace;font-size:.88em;background:var(--sky-l);color:var(--sky-d);padding:1px 6px;border-radius:5px}
+pre{background:var(--code);color:var(--codeink);padding:16px 18px;border-radius:10px;overflow-x:auto;font:.85rem/1.55 'JetBrains Mono',monospace;border-top:4px solid var(--sky)}
+pre code{background:none;color:inherit;padding:0}
+.c{color:#7dd3fc}
+.note{background:var(--sky-l);border-left:5px solid var(--sky);padding:12px 16px;border-radius:0 10px 10px 0;margin:14px 0}
+.tbl{overflow-x:auto;margin:12px 0}
+table{border-collapse:collapse;width:100%;background:var(--card);font-size:.95rem}
+th{background:var(--sky);color:#fff;text-align:left;padding:9px 12px}
+td{padding:8px 12px;border-bottom:1px solid var(--line)}
+tr:last-child td{font-weight:700}
+.flow{display:flex;gap:8px;align-items:stretch;overflow-x:auto;padding:6px 0 12px}
+.node{flex:1 0 140px;background:var(--card);border:2px solid var(--sky);border-radius:12px;padding:12px;text-align:center}
+.node b{display:block;color:var(--sky-d)}
+.node small{color:var(--mute)}
+.arr{align-self:center;color:var(--sky);font-size:1.6rem;font-weight:800}
+.bars{display:grid;gap:5px;margin:12px 0}
+.bar{display:grid;grid-template-columns:24px 1fr 44px;gap:8px;align-items:center;font-size:.9rem}
+.bar i{display:block;height:14px;border-radius:7px;background:var(--line)}
+.bar.top i{background:var(--sky)}
+.demo{background:var(--card);border:2px solid var(--line);border-radius:12px;padding:16px;margin:14px 0}
+.demo input{width:100%;accent-color:var(--sky)}
+.demo output{font-weight:800;color:var(--sky-d)}
+footer{margin-top:56px;background:var(--sky);color:#fff;text-align:center;padding:22px 20px calc(22px + env(safe-area-inset-bottom,0px));font-weight:800;letter-spacing:.02em}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+<h1>How a Simple Neural Network Works</h1>
+<p>Build an Artificial Neural Network with TensorFlow and Keras that reads handwritten digits (0 to 9), and understand every line of it.</p>
+</div></header>
+
+<nav aria-label="Sections"><div class="wrap">
+<a href="#model">The model</a><a href="#layers">Layers</a><a href="#flow">Data flow</a><a href="#params">Parameters</a><a href="#train">Training</a><a href="#full">Full code</a><a href="#recap">Recap</a>
+</div></nav>
+
+<main class="wrap">
+
+<section id="model">
+<h2>The model in three layers</h2>
+<p>Give the model an image of a handwritten digit, and it predicts which digit it is. Here is the architecture:</p>
+<pre><code>import tensorflow as tf
+
+model = tf.keras.Sequential([
+    tf.keras.layers.Flatten(input_shape=(28, 28)),
+    tf.keras.layers.Dense(128, activation='relu'),
+    tf.keras.layers.Dense(10, activation='softmax')
+])</code></pre>
+<h3><code>import tensorflow as tf</code></h3>
+<p><code>import</code> loads a library, <code>tensorflow</code> is the machine learning library, and <code>as tf</code> is a shorter alias. We write <code>tf.keras</code> instead of <code>tensorflow.keras</code>.</p>
+<h3><code>model =</code></h3>
+<p>A Python variable that stores the network. You use it later to train, predict, and evaluate. Think of it as the name of the machine you are building.</p>
+<h3><code>tf.keras.Sequential([ ])</code></h3>
+<p><code>keras</code> is TensorFlow's high-level API. <code>Sequential()</code> arranges layers one after another, inside a Python list.</p>
+<div class="note"><b>Analogy:</b> an assembly line. A product passes through one machine, then the next. Data passes through Sequential layers in order, which suits this model because it follows a single path from input to output.</div>
+</section>
+
+<section id="layers">
+<h2>The three layers</h2>
+
+<h3>Layer 1: Flatten</h3>
+<pre><code>tf.keras.layers.Flatten(input_shape=(28, 28))</code></pre>
+<p>Flatten turns a 2D image into a 1D list. <code>input_shape=(28, 28)</code> is the size of one image (28 rows, 28 columns), without the batch dimension. That gives 28 × 28 = <b>784</b> pixel values.</p>
+<pre><code><span class="c"># 3 x 3 image</span>
+[[0, 0, 255],
+ [0, 255, 255],
+ [255, 0, 0]]
+
+<span class="c"># after Flatten</span>
+[0, 0, 255, 0, 255, 255, 255, 0, 0]</code></pre>
+<p>Flatten only changes shape. It learns nothing and does not change pixel values.</p>
+
+<h3>Layer 2: Dense with 128 neurons (hidden layer)</h3>
+<pre><code>tf.keras.layers.Dense(128, activation='relu')</code></pre>
+<p>A Dense layer is fully connected: every neuron receives every output of the previous layer. Each neuron computes:</p>
+<pre><code>z = w1*x1 + w2*x2 + ... + wn*xn + b</code></pre>
+<p><code>x</code> are inputs, <code>w</code> are weights, <code>b</code> is the bias, and <code>z</code> is the result before activation. Weights and biases are learned during training.</p>
+<p><code>128</code> means 128 neurons. Each one learns a different weighted combination of the 784 inputs.</p>
+
+<h3>ReLU activation</h3>
+<p>ReLU (Rectified Linear Unit) is <code>max(0, x)</code>: negatives become 0, positives pass through. Without a nonlinear activation, stacked Dense layers would collapse into one linear transformation. ReLU lets the network learn complex patterns.</p>
+<div class="demo">
+<label for="rx">Input x = <output id="xv">3</output></label>
+<input id="rx" type="range" min="-8" max="8" value="3" step="1">
+<p style="margin:8px 0 0">ReLU(x) = <output id="rv">3</output></p>
+</div>
+
+<h3>Layer 3: Dense with 10 neurons and Softmax (output layer)</h3>
+<pre><code>tf.keras.layers.Dense(10, activation='softmax')</code></pre>
+<p>Ten neurons, one per digit class (0 to 9). <b>Softmax</b> converts the ten scores into probabilities that sum to 1. Illustrative output:</p>
+<div class="bars" role="img" aria-label="Probability for digit 7 is 0.85, others between 0.01 and 0.03">
+<div class="bar"><span>0</span><i style="width:1%"></i><span>0.01</span></div>
+<div class="bar"><span>1</span><i style="width:2%"></i><span>0.02</span></div>
+<div class="bar"><span>2</span><i style="width:1%"></i><span>0.01</span></div>
+<div class="bar"><span>3</span><i style="width:3%"></i><span>0.03</span></div>
+<div class="bar"><span>4</span><i style="width:1%"></i><span>0.01</span></div>
+<div class="bar"><span>5</span><i style="width:2%"></i><span>0.02</span></div>
+<div class="bar"><span>6</span><i style="width:1%"></i><span>0.01</span></div>
+<div class="bar top"><span>7</span><i style="width:85%"></i><span>0.85</span></div>
+<div class="bar"><span>8</span><i style="width:2%"></i><span>0.02</span></div>
+<div class="bar"><span>9</span><i style="width:2%"></i><span>0.02</span></div>
+</div>
+<p>The highest probability (0.85) is digit 7, so the model predicts 7. Softmax does not guarantee the prediction is correct. It only gives relative probabilities.</p>
+</section>
+
+<section id="flow">
+<h2>How data flows</h2>
+<div class="flow">
+<div class="node"><b>Input image</b><small>28 × 28</small></div><div class="arr">›</div>
+<div class="node"><b>Flatten</b><small>784 values</small></div><div class="arr">›</div>
+<div class="node"><b>Dense + ReLU</b><small>128 neurons</small></div><div class="arr">›</div>
+<div class="node"><b>Dense + Softmax</b><small>10 probabilities</small></div><div class="arr">›</div>
+<div class="node"><b>Prediction</b><small>highest wins</small></div>
+</div>
+<ol>
+<li>Receive an image with 784 pixel values.</li>
+<li>Flatten it into a 1D vector.</li>
+<li>Pass it through 128 neurons that learn useful feature combinations.</li>
+<li>Send those outputs to the ten output neurons.</li>
+<li>Apply Softmax to get a probability distribution over 0 to 9.</li>
+<li>Pick the digit with the highest probability.</li>
+</ol>
+</section>
+
+<section id="params">
+<h2>Counting trainable parameters</h2>
+<p>A parameter is a weight or bias the model learns.</p>
+<ul>
+<li><b>Flatten:</b> 0 parameters.</li>
+<li><b>Dense (128):</b> 784 × 128 = 100,352 weights + 128 biases = 100,480.</li>
+<li><b>Dense (10):</b> 128 × 10 = 1,280 weights + 10 biases = 1,290.</li>
+</ul>
+<div class="tbl"><table>
+<tr><th>Layer</th><th>Trainable parameters</th></tr>
+<tr><td>Flatten</td><td>0</td></tr>
+<tr><td>Dense (128)</td><td>100,480</td></tr>
+<tr><td>Dense (10)</td><td>1,290</td></tr>
+<tr><td>Total</td><td>101,770</td></tr>
+</table></div>
+</section>
+
+<section id="train">
+<h2>Training the model</h2>
+<p>The code above only defines the architecture. To learn, the model must be compiled, fitted, and evaluated.</p>
+<h3>1. Compile</h3>
+<pre><code>model.compile(
+    optimizer='adam',
+    loss='sparse_categorical_crossentropy',
+    metrics=['accuracy']
+)</code></pre>
+<p><code>optimizer='adam'</code> updates weights and biases. <code>loss</code> measures error for integer labels (0 to 9). <code>metrics</code> reports the fraction of correct predictions.</p>
+<h3>2. Fit</h3>
+<pre><code>model.fit(train_images, train_labels, epochs=5)</code></pre>
+<p><code>epochs=5</code> means the model sees the full training set five times. Each pass it predicts, calculates loss, and updates its parameters.</p>
+<h3>3. Evaluate</h3>
+<pre><code>model.evaluate(test_images, test_labels)</code></pre>
+<p>Checks performance on data the model was not trained on. Pixel values are commonly scaled to 0 to 1 first.</p>
+</section>
+
+<section id="full">
+<h2>Complete code with MNIST</h2>
+<pre><code>import tensorflow as tf
+
+<span class="c"># Load the dataset</span>
+(train_images, train_labels), (test_images, test_labels) = (
+    tf.keras.datasets.mnist.load_data()
+)
+
+<span class="c"># Normalize pixel values from 0-255 to 0-1</span>
+train_images = train_images / 255.0
+test_images = test_images / 255.0
+
+<span class="c"># Build the neural network</span>
+model = tf.keras.Sequential([
+    tf.keras.layers.Flatten(input_shape=(28, 28)),
+    tf.keras.layers.Dense(128, activation='relu'),
+    tf.keras.layers.Dense(10, activation='softmax')
+])
+
+<span class="c"># Configure training</span>
+model.compile(
+    optimizer='adam',
+    loss='sparse_categorical_crossentropy',
+    metrics=['accuracy']
+)
+
+<span class="c"># Train</span>
+model.fit(train_images, train_labels, epochs=5)
+
+<span class="c"># Evaluate</span>
+test_loss, test_accuracy = model.evaluate(test_images, test_labels)
+print("Test Accuracy:", test_accuracy)
+
+<span class="c"># Predict one test image</span>
+predictions = model.predict(test_images[:1])
+predicted_digit = predictions[0].argmax()
+
+print("Predicted Digit:", predicted_digit)
+print("Actual Digit:", test_labels[0])</code></pre>
+<p>Actual accuracy depends on the training run and configuration.</p>
+</section>
+
+<section id="revision">
+<h2>Quick revision</h2>
+<div class="tbl"><table>
+<tr><th>Code</th><th>Meaning</th></tr>
+<tr><td><code>import tensorflow as tf</code></td><td>Imports TensorFlow as <code>tf</code></td></tr>
+<tr><td><code>Sequential()</code></td><td>Connects layers in sequence</td></tr>
+<tr><td><code>Flatten()</code></td><td>Converts an image into a vector</td></tr>
+<tr><td><code>input_shape=(28, 28)</code></td><td>Size of each input image</td></tr>
+<tr><td><code>Dense(128)</code></td><td>Fully connected layer, 128 neurons</td></tr>
+<tr><td><code>activation='relu'</code></td><td>Adds nonlinearity</td></tr>
+<tr><td><code>Dense(10)</code></td><td>Ten output neurons</td></tr>
+<tr><td><code>activation='softmax'</code></td><td>Probabilities across ten classes</td></tr>
+<tr><td><code>model.compile()</code></td><td>Configures training</td></tr>
+<tr><td><code>optimizer='adam'</code></td><td>Optimization algorithm</td></tr>
+<tr><td><code>loss='sparse_categorical_crossentropy'</code></td><td>Error for integer labels</td></tr>
+<tr><td><code>model.fit()</code></td><td>Trains the model</td></tr>
+<tr><td><code>epochs=5</code></td><td>Five passes over the training data</td></tr>
+<tr><td><code>model.evaluate()</code></td><td>Measures performance</td></tr>
+<tr><td><code>model.predict()</code></td><td>Generates predictions</td></tr>
+<tr><td><code>.argmax()</code></td><td>Index of the largest value</td></tr>
+</table></div>
+</section>
+
+<section id="recap">
+<h2>Final summary</h2>
+<ol>
+<li><b>Prepare:</b> Flatten converts the image into 784 inputs.</li>
+<li><b>Learn:</b> the 128-neuron Dense layer learns pixel combinations.</li>
+<li><b>Classify:</b> the 10-neuron layer scores each digit, and Softmax turns scores into probabilities.</li>
+<li><b>Improve:</b> training adjusts weights and biases to reduce errors.</li>
+</ol>
+<div class="note"><b>Key takeaway:</b> defining a model creates its architecture. Training is what teaches it the link between images and their correct digits. Think of a student: the image is the question, the hidden layer learns patterns, the output layer answers, and training gives examples and feedback.</div>
+</section>
+
+</main>
+<footer>Entri Coding Tamil</footer>
+<script>
+var r=document.getElementById('rx'),x=document.getElementById('xv'),o=document.getElementById('rv');
+r.addEventListener('input',function(){var v=+r.value;x.textContent=v;o.textContent=Math.max(0,v)});
+</script>
+</body>
+</html>
